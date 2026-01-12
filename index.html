@@ -2,29 +2,131 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Мои Шейдеры</title>
+    <title>Моя Лаборатория Шейдеров</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; }
-        canvas { display: block; }
+        body { 
+            margin: 0; 
+            background: #1a1a1a; 
+            color: white; 
+            font-family: monospace; 
+            display: flex; /* Делим экран на 2 части */
+            height: 100vh;
+        }
+        
+        /* Левая часть: Канвас */
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-right: 1px solid #333;
+        }
+        
+        canvas {
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* Правая часть: Редактор и настройки */
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        /* Текстовое поле */
+        textarea {
+            width: 100%;
+            height: 70%;
+            background: #2b2b2b;
+            color: #ddd;
+            border: none;
+            padding: 15px;
+            font-size: 14px;
+            font-family: 'Courier New', Courier, monospace;
+            resize: none;
+            outline: none;
+        }
+
+        /* Блок управления слайдером */
+        .controls {
+            margin-top: 20px;
+            padding: 10px;
+            background: #333;
+        }
     </style>
 </head>
 <body>
-    <canvas class="glslCanvas" data-fragment="
-        #ifdef GL_ES
-        precision mediump float;
-        #endif
 
-        uniform vec2 u_resolution;
-        uniform float u_time;
+    <div class="canvas-container">
+        <canvas id="glslCanvas" data-fragment-url="fragment.glsl" width="500" height="500"></canvas>
+    </div>
 
-        void main() {
-            vec2 st = gl_FragCoord.xy/u_resolution.xy;
-            // Красивый перелив цветов от времени
-            vec3 color = 0.5 + 0.5*cos(u_time+st.xyx+vec3(0,2,4));
-            gl_FragColor = vec4(color, 1.0);
-        }
-    " width="500" height="500" style="width: 100%; height: 100%;"></canvas>
+    <div class="editor-container">
+        <h3>Редактор кода</h3>
+        <textarea id="code">
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform float u_time;
+uniform float u_speed; // Наша переменная скорости
+
+void main() {
+    vec2 st = gl_FragCoord.xy/u_resolution.xy;
+    
+    // Используем u_speed для ускорения времени
+    float time = u_time * u_speed;
+
+    vec3 color = 0.5 + 0.5*cos(time + st.xyx + vec3(0,2,4));
+    
+    gl_FragColor = vec4(color, 1.0);
+}
+        </textarea>
+
+        <div class="controls">
+            <label>Скорость (u_speed): <span id="speedVal">1.0</span></label><br>
+            <input type="range" id="speedSlider" min="0" max="5" step="0.1" value="1.0" style="width: 100%;">
+        </div>
+    </div>
 
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/glslCanvas@0.2.6/dist/GlslCanvas.min.js"></script>
+
+    <script>
+        // 1. Инициализируем GlslCanvas
+        var canvas = document.getElementById("glslCanvas");
+        var sandbox = new GlslCanvas(canvas);
+
+        // 2. Настраиваем редактор кода
+        var textarea = document.getElementById("code");
+        
+        // Загружаем код из textarea в канвас сразу при запуске
+        sandbox.load(textarea.value);
+
+        // Слушаем каждое нажатие клавиши
+        textarea.addEventListener('input', function() {
+            sandbox.load(textarea.value);
+        });
+
+        // 3. Настраиваем Слайдер
+        var slider = document.getElementById("speedSlider");
+        var valDisplay = document.getElementById("speedVal");
+
+        function updateSpeed() {
+            var val = slider.value;
+            // Обновляем текст
+            valDisplay.innerHTML = val;
+            // Отправляем значение в шейдер как uniform переменную
+            sandbox.setUniform("u_speed", val);
+        }
+
+        // Слушаем движение ползунка
+        slider.addEventListener('input', updateSpeed);
+        
+        // Запускаем один раз, чтобы установить начальное значение
+        updateSpeed();
+    </script>
 </body>
 </html>
