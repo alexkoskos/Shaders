@@ -9,58 +9,63 @@
             background: #1a1a1a; 
             color: white; 
             font-family: monospace; 
-            display: flex; /* Делим экран на 2 части */
+            display: flex;
             height: 100vh;
+            overflow: hidden; /* Чтобы не было скролла */
         }
         
-        /* Левая часть: Канвас */
         .canvas-container {
             flex: 1;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-            border-right: 1px solid #333;
+            background: #000;
+            position: relative;
         }
         
+        /* Важно: канвас должен занимать место */
         canvas {
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            width: 100%; 
+            height: 100%;
         }
 
-        /* Правая часть: Редактор и настройки */
         .editor-container {
-            flex: 1;
+            width: 400px; /* Фиксированная ширина для редактора */
             display: flex;
             flex-direction: column;
             padding: 20px;
+            background: #2b2b2b;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            z-index: 10;
         }
 
-        /* Текстовое поле */
         textarea {
-            width: 100%;
-            height: 70%;
-            background: #2b2b2b;
-            color: #ddd;
-            border: none;
+            flex-grow: 1;
+            background: #1e1e1e;
+            color: #dcdcdc;
+            border: 1px solid #444;
             padding: 15px;
             font-size: 14px;
             font-family: 'Courier New', Courier, monospace;
             resize: none;
             outline: none;
+            margin-bottom: 20px;
         }
 
-        /* Блок управления слайдером */
         .controls {
-            margin-top: 20px;
-            padding: 10px;
+            padding: 15px;
             background: #333;
+            border-radius: 8px;
         }
+        
+        label { display: block; margin-bottom: 10px; }
+        input[type=range] { width: 100%; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="canvas-container">
-        <canvas id="glslCanvas" data-fragment-url="fragment.glsl" width="500" height="500"></canvas>
+        <canvas id="glslCanvas"></canvas>
     </div>
 
     <div class="editor-container">
@@ -72,61 +77,60 @@ precision mediump float;
 
 uniform vec2 u_resolution;
 uniform float u_time;
-uniform float u_speed; // Наша переменная скорости
+uniform float u_speed; 
 
 void main() {
     vec2 st = gl_FragCoord.xy/u_resolution.xy;
     
-    // Используем u_speed для ускорения времени
-    float time = u_time * u_speed;
-
-    vec3 color = 0.5 + 0.5*cos(time + st.xyx + vec3(0,2,4));
+    // Анимация цвета
+    float t = u_time * u_speed;
+    
+    // Создаем красивые волны
+    vec3 color = 0.5 + 0.5*cos(t + st.xyx + vec3(0,2,4));
     
     gl_FragColor = vec4(color, 1.0);
 }
         </textarea>
 
         <div class="controls">
-            <label>Скорость (u_speed): <span id="speedVal">1.0</span></label><br>
-            <input type="range" id="speedSlider" min="0" max="5" step="0.1" value="1.0" style="width: 100%;">
+            <label>Скорость (u_speed): <span id="speedVal">1.0</span></label>
+            <input type="range" id="speedSlider" min="0" max="10" step="0.1" value="1.0">
         </div>
     </div>
 
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/glslCanvas@0.2.6/dist/GlslCanvas.min.js"></script>
 
     <script>
-        // 1. Инициализируем GlslCanvas
-        var canvas = document.getElementById("glslCanvas");
-        var sandbox = new GlslCanvas(canvas);
+        // Ждем загрузки страницы
+        window.onload = function() {
+            var canvas = document.getElementById("glslCanvas");
+            var sandbox = new GlslCanvas(canvas);
 
-        // 2. Настраиваем редактор кода
-        var textarea = document.getElementById("code");
-        
-        // Загружаем код из textarea в канвас сразу при запуске
-        sandbox.load(textarea.value);
+            var textarea = document.getElementById("code");
+            var slider = document.getElementById("speedSlider");
+            var valDisplay = document.getElementById("speedVal");
 
-        // Слушаем каждое нажатие клавиши
-        textarea.addEventListener('input', function() {
+            // 1. Загружаем код из textarea
             sandbox.load(textarea.value);
-        });
 
-        // 3. Настраиваем Слайдер
-        var slider = document.getElementById("speedSlider");
-        var valDisplay = document.getElementById("speedVal");
+            // 2. Функция обновления кода
+            textarea.addEventListener('input', function() {
+                sandbox.load(textarea.value);
+            });
 
-        function updateSpeed() {
-            var val = slider.value;
-            // Обновляем текст
-            valDisplay.innerHTML = val;
-            // Отправляем значение в шейдер как uniform переменную
-            sandbox.setUniform("u_speed", val);
-        }
+            // 3. Функция обновления скорости
+            function updateSpeed() {
+                var val = slider.value;
+                valDisplay.innerText = val;
+                sandbox.setUniform("u_speed", parseFloat(val));
+            }
 
-        // Слушаем движение ползунка
-        slider.addEventListener('input', updateSpeed);
-        
-        // Запускаем один раз, чтобы установить начальное значение
-        updateSpeed();
+            // Слушаем изменения слайдера
+            slider.addEventListener('input', updateSpeed);
+            
+            // Запускаем сразу, чтобы применить начальную скорость
+            updateSpeed();
+        };
     </script>
 </body>
 </html>
