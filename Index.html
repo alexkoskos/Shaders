@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <canvas class="glslCanvas" data-fragment="
+        #ifdef GL_ES
+        precision mediump float;
+        #endif
+
+        uniform vec2 u_resolution;
+        uniform float u_time;
+
+        void main() {
+            vec2 st = gl_FragCoord.xy/u_resolution.xy;
+            // Меняем цвет от времени
+            gl_FragColor = vec4(st.x, st.y, sin(u_time), 1.0);
+        }
+    " width="500" height="500"></canvas>
+
+    <script type="text/javascript" src="https://rawgit.com/patriciogonzalezvivo/glslCanvas/master/dist/glslCanvas.js"></script>
+</body>
+</html>
